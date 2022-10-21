@@ -85,9 +85,9 @@ function bayesian_blocks(
         end
     end
     total = sum(counts)
-    heights = counts ./ (total .* diff(edges))
-    centers = @views (edges[1:end-1] .+ edges[2:end]) ./ 2
     widths = diff(edges)
+    heights = counts ./ (total .* widths)
+    centers = @views (edges[1:end-1] .+ edges[2:end]) ./ 2
     return (; edges, counts, centers, widths, heights)
 end
 
