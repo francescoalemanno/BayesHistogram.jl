@@ -20,7 +20,7 @@ using BayesHistogram, Test, Random
         2.932943071805272,
         3.590507153644763,
     ]
-    @test all(bayesian_blocks(x).edges .≈ ref)
+    @test all(bayesian_blocks(x, resolution=100.0, min_counts=2).edges .≈ ref)
 
     ref = [
         -3.704058531618975,
@@ -34,6 +34,6 @@ using BayesHistogram, Test, Random
         2.6556538491763684,
         3.590507153644763,
     ]
-    @test all(bayesian_blocks(x, resolution = 10).edges .≈ ref)
+    @test all(bayesian_blocks(x, resolution=10.0, min_counts=2).edges .≈ ref)
 end
 

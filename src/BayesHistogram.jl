@@ -1,9 +1,11 @@
 """BayesHistogram.jl
-    main procedures: 
-    bayesian_blocks(data
-                    [, p0 = 0.05 is default: false-positive-rate, 
-                    resolution = Inf is default: lower numbers allow for finer partitions]
-                    )
+    main procedure: 
+    bayesian_blocks(
+        t::AbstractVector{T};
+        p0::T = T(5) / T(100),
+        resolution::T = T(Inf),
+        min_counts::Int = ceil(Int64, sqrt(length(t))/2)
+    )
 """
 module BayesHistogram
 
