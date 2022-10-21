@@ -33,7 +33,7 @@ function bayesian_blocks(
     lp0 = log(p0) + 0.2976934862081313
 
     # Start with first data cell; add one cell at each iteration
-    for Q = 1:N
+    @inbounds for Q = 1:N
         fit_max = -Inf
         i_max = 0
         for i = 1 : (Q - min_counts)
@@ -86,7 +86,7 @@ function bayesian_blocks(
     end
     total = sum(counts)
     heights = counts ./ (total .* diff(edges))
-    centers = (edges[1:end-1] .+ edges[2:end]) ./ 2
+    centers = @views (edges[1:end-1] .+ edges[2:end]) ./ 2
     widths = diff(edges)
     return (; edges, counts, centers, widths, heights)
 end
