@@ -11,35 +11,35 @@ module BayesHistogram
 
 function bayesian_blocks(
     t::AbstractVector{T};
-    p0::T = T(5) / T(100),
-    resolution::T = T(Inf),
-    min_counts::Int = ceil(Int64, sqrt(length(t))/2)
-) where {T<:AbstractFloat}
+    p0 = T(5) / T(100),
+    resolution = oftype(p0, Inf),
+    min_counts::Integer = ceil(Int64, sqrt(length(t))/2)
+) where {T<:Real}
     # copy and sort the array
     t = sort(t)
     N = length(t)
 
     # create cell edges
-    edges = [t[1]; (t[2:end] .+ t[1:end-1]) ./ 2; t[end]]
+    edges = [t[begin]; @views(t[begin+1:end] .+ t[begin:end-1]) ./ 2; t[end]]
     block_length = t[end] .- edges
 
     # arrays needed for the iteration
     best = zeros(N)
-    last = zeros(Int, N)
+    lasts = zeros(Int, N)
 
-    extent = t[end] - t[1]
-    dt = max(abs(extent / resolution), zero(extent))
+    extent = t[end] - t[begin]
+    # by default dt is 0 because resolution is Inf
+    dt = max(abs(extent / resolution), zero(T))
     lp0 = log(p0) + 0.2976934862081313
 
     # Start with first data cell; add one cell at each iteration
-    for Q = 1:N
+    @inbounds for Q = 1:N
         fit_max = -Inf
         i_max = 0
-        for i = 1:Q
+        for i = 1 : (Q - min_counts)
+            cnt_in_range = Q + 1 - i
             width = block_length[i] - block_length[Q+1]
             width <= dt && continue
-            cnt_in_range = Q + 1 - i
-            cnt_in_range < min_counts && continue
 
             fitness = cnt_in_range * (log(cnt_in_range / width)) + lp0 - 0.478 * log(cnt_in_range)
             if i > 1
@@ -52,7 +52,7 @@ function bayesian_blocks(
         end
 
         # find the max of the fitness: this is the Q^th changepoint
-        last[Q] = i_max
+        lasts[Q] = i_max
         best[Q] = fit_max
     end
 
@@ -66,7 +66,7 @@ function bayesian_blocks(
         if ind == 1
             break
         end
-        ind = last[ind-1]
+        ind = lasts[ind-1]
     end
     change_points = change_points[i_cp:end]
     edges = edges[change_points]
@@ -85,9 +85,9 @@ function bayesian_blocks(
         end
     end
     total = sum(counts)
-    heights = counts ./ (total .* diff(edges))
-    centers = (edges[1:end-1] .+ edges[2:end]) ./ 2
     widths = diff(edges)
+    heights = counts ./ (total .* widths)
+    centers = @views (edges[1:end-1] .+ edges[2:end]) ./ 2
     return (; edges, counts, centers, widths, heights)
 end
 
