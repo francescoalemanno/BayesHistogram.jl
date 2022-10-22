@@ -20,7 +20,7 @@ using BayesHistogram, Test, Random
         2.932943071805272,
         3.590507153644763,
     ]
-    @test all(bayesian_blocks(x, resolution=100.0, min_counts=2).edges .≈ ref)
+    @test all(bayesian_blocks(x, resolution = 100.0, min_counts = 2).edges .≈ ref)
 
     ref = [
         -3.704058531618975,
@@ -34,6 +34,29 @@ using BayesHistogram, Test, Random
         2.6556538491763684,
         3.590507153644763,
     ]
-    @test all(bayesian_blocks(x, resolution=10.0, min_counts=2).edges .≈ ref)
-end
+    @test all(bayesian_blocks(x, resolution = 10.0, min_counts = 2).edges .≈ ref)
 
+    ref = [
+        -3.704058531618975,
+        -2.3560907704049026,
+        -1.8580502723199308,
+        -1.3689581844499061,
+        -0.8575881683262867,
+        0.7468356102958359,
+        1.2602857648643435,
+        1.8727595838347098,
+        2.372046297337469,
+        3.590507153644763,
+    ]
+    @test all(bayesian_blocks(x, resolution = 15.0).edges .≈ ref)
+
+    w = rand(Xoshiro(1337), 5000) .* 10 .+ 10
+    ref = [
+        -3.704058531618975,
+        -2.133218533025471,
+        -0.6740516063769897,
+        1.747680727789755,
+        3.590507153644763,
+    ]
+    @test all(bayesian_blocks(x, weights = w, resolution = 5.0).edges .≈ ref)
+end
