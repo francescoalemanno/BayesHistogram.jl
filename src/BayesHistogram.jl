@@ -8,21 +8,44 @@
     )
 """
 module BayesHistogram
-
+function count_between_edges(edges,weights,observations, shift::Bool = false)
+    i = 1
+    out = zeros(length(edges) - 1 + shift)
+    for (el,w) in zip(observations,weights)
+        while !(edges[i] <= el < edges[i+1] || el == edges[end])
+            i += 1
+        end
+        out[i+shift] += w
+    end
+    return out
+end
 function bayesian_blocks(
     t::AbstractVector{T};
+    weights::AbstractVector{W}=T[],
     p0 = T(5) / T(100),
     resolution = oftype(p0, Inf),
-    min_counts::Integer = ceil(Int64, sqrt(length(t))/2)
-) where {T<:Real}
-    # copy and sort the array
-    t = sort(t)
+    min_counts::Integer = -1
+) where {T<:Real, W<:Real}
     N = length(t)
+    # copy and sort the arrays
+    perm = sortperm(t)
+    t = t[perm]
+    
+    if length(weights) == 0
+        weights = ones(T,N)
+    else
+        weights = weights[perm]
+    end
 
+    if min_counts <= -1
+        min_counts = ceil(Int64, sqrt(sum(weights))/2)
+    end
     # create cell edges
     edges = [t[begin]; @views(t[begin+1:end] .+ t[begin:end-1]) ./ 2; t[end]]
-    block_length = t[end] .- edges
 
+    # make cumulative weights
+    wh_in_edge = count_between_edges(edges, weights, t, true)
+    wh_in_edge .= cumsum(wh_in_edge)
     # arrays needed for the iteration
     best = zeros(N)
     lasts = zeros(Int, N)
@@ -36,10 +59,11 @@ function bayesian_blocks(
     @inbounds for Q = 1:N
         fit_max = -Inf
         i_max = 0
-        for i = 1 : (Q - min_counts)
-            cnt_in_range = Q + 1 - i
-            width = block_length[i] - block_length[Q+1]
-            width <= dt && continue
+        for i = 1 : Q
+            cnt_in_range = wh_in_edge[Q+1] - wh_in_edge[i]
+            cnt_in_range < min_counts && break
+            width = edges[Q+1] - edges[i]
+            width <= dt && break
 
             fitness = cnt_in_range * (log(cnt_in_range / width)) + lp0 - 0.478 * log(cnt_in_range)
             if i > 1
@@ -70,26 +94,15 @@ function bayesian_blocks(
     end
     change_points = change_points[i_cp:end]
     edges = edges[change_points]
-
+    
     # Evaluate densities and heights
-    E = length(edges)
-    counts = zeros(Int, E - 1)
-    i = 1
-    for el in t
-        @label retry
-        if edges[i] <= el < edges[i+1] || el == edges[end]
-            counts[i] += 1
-        else
-            i += 1
-            @goto retry
-        end
-    end
+    centers =  @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
+    counts = count_between_edges(edges, weights, t)
     total = sum(counts)
     widths = diff(edges)
     heights = counts ./ (total .* widths)
-    centers = @views (edges[1:end-1] .+ edges[2:end]) ./ 2
     return (; edges, counts, centers, widths, heights)
 end
 
-export bayesian_blocks
+export bayesian_blocks, count_between_edges
 end

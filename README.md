@@ -2,5 +2,6 @@
 optimal histogram binning based on piecewise constant model
 
 ![plot.png](plot.png "")
+![plot2.png](plot2.png "")
 
-for a worked example read `make_plot.jl`.
+for worked examples read `make_plot.jl`.
