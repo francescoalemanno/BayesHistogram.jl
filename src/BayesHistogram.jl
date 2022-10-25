@@ -13,7 +13,7 @@ function count_between_edges(edges,weights,observations, shift::Bool = false)
     i = 1
     out = zeros(length(edges) - 1 + shift)
     for (el,w) in zip(observations,weights)
-        while !(edges[i] <= el < edges[i+1] || el == edges[end])
+        while !(edges[i] <= el <= edges[i+1])
             i += 1
         end
         out[i+shift] += w
@@ -68,6 +68,19 @@ function bayesian_blocks(
     # make cumulative weights
     wh_in_edge = count_between_edges(edges, weights, t, true)
     wh_in_edge .= cumsum(wh_in_edge)
+
+    #=
+    # this was for testing the weights distribution
+    for i in 1:N, j in i:N
+        c1 = sum(@views(weights[i:j])) == wh_in_edge[j+1]-wh_in_edge[i]
+        c2 = edges[i] <= t[i] <= edges[j+1]
+        c3 = edges[i] <= t[j] <= edges[j+1]
+        if !(c1 || c2 || c3)
+            error("wrong $i $j $N, $c1 $c2 $c3")
+        end
+    end
+    =#
+
     # arrays needed for the iteration
     best = zeros(N)
     lasts = zeros(Int, N)
