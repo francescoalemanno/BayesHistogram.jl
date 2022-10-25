@@ -45,7 +45,7 @@ function bayesian_blocks(
 
     # make cumulative weights
     wh_in_edge = count_between_edges(edges, weights, t, true)
-    wh_in_edge .= cumsum(wh_in_edge)
+    wh_in_edge .= reverse(cumsum(reverse(wh_in_edge)))
     # arrays needed for the iteration
     best = zeros(N)
     lasts = zeros(Int, N)
@@ -60,7 +60,7 @@ function bayesian_blocks(
         fit_max = -Inf
         i_max = 0
         for i = 1 : Q
-            cnt_in_range = wh_in_edge[Q+1] - wh_in_edge[i]
+            cnt_in_range = wh_in_edge[i] - wh_in_edge[Q+1]
             cnt_in_range < min_counts && break
             width = edges[Q+1] - edges[i]
             width <= dt && break
@@ -79,7 +79,6 @@ function bayesian_blocks(
         lasts[Q] = i_max
         best[Q] = fit_max
     end
-
     # Recover changepoints by iteratively peeling off the last block
     change_points = zeros(Int, N)
     i_cp = N + 1
