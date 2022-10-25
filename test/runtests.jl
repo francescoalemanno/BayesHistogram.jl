@@ -66,3 +66,20 @@ end
     input_float = float.(input_int)
     @test bayesian_blocks(input_int) == bayesian_blocks(input_float)
 end
+
+@testset "sanitize" begin
+    xc = @. round(100*x)/100
+    w = fill(1, 5000)
+    idx = shuffle(StableRNG(1337),1:5000)[1:4000]
+    w[idx] .= 0
+    xt,wt = BayesHistogram.sanitize(xc,w)
+    @test all(xt .== unique(xt))
+    @test all(wt .> 0)
+    @test issorted(xt)
+    @test sum(wt) == sum(w)
+end
+
+@testset "trivial datasets" begin
+    @test bayesian_blocks([1.0]).counts[1] == 1
+    @test bayesian_blocks(Float64[]).counts[1] == 0
+end

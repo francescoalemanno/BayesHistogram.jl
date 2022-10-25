@@ -14,7 +14,7 @@ let
         randn(rng,N2).*0.04 .+ sqrt(4); 
         randn(rng,N2).*0.08 .+ sqrt(8);
     ])
-
+    @. x  = round(x*100)/100
     b = bayesian_blocks(x, prior = Geometric(0.995))
     P = []
 
