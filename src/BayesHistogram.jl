@@ -2,9 +2,10 @@
     main procedure: 
     bayesian_blocks(
         t::AbstractVector{T};
-        p0::T = T(5) / T(100),
-        resolution::T = T(Inf),
-        min_counts::Int = ceil(Int64, sqrt(length(t))/2)
+        weights::AbstractVector{W}=T[],
+        prior = Scargle(T(0.05)),
+        resolution = T(Inf),
+        min_counts::Integer = -1
     )
 """
 module BayesHistogram
@@ -124,5 +125,5 @@ function bayesian_blocks(
     return (; edges, counts, centers, widths, heights)
 end
 
-export bayesian_blocks, count_between_edges
+export bayesian_blocks, Jeffrey, Scargle
 end

@@ -41,10 +41,10 @@ using Trapz
 let
     gr()
     rng = Xoshiro(123514)
-    x = collect(range(-4,4,length = 1000))
-    w = ceil.(rand(rng,length(x)).*10 .+ @. ( exp(-x^2/2)*500 .+ 1))
-    
-    b = bayesian_blocks(x,weights=w)
+    x = collect(range(-4,4,length = 300))
+    w = ceil.(rand(rng,length(x)).*100 .+ @. ( exp(-x^2/2)*500 .+ 1))
+    #in this case let's use the non-informative prior
+    b = bayesian_blocks(x,weights=w, prior = Jeffrey(3.0))
     pdf = w./trapz(x,w)
     plot(x,pdf,color="red", label="noisy weighted obs")
     stephist!(x,bins = b.edges, weights=w, normalize=true, color="black", yaxis=:log,label="bayeshist",lw=2)

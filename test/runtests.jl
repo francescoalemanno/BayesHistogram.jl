@@ -60,3 +60,15 @@ using BayesHistogram, Test, Random
     ]
     @test all(bayesian_blocks(x, weights = w, resolution = 5.0).edges .≈ ref)
 end
+
+
+
+@testset "Jeffrey's Prior" begin
+    max_N = 100
+    Nv = 1:max_N
+    prior = @. 1/sqrt(Nv)
+    prior .= log.(prior./sum(prior))
+    a_prior = Jeffrey(1.0)
+    deltas = abs.(prior .- a_prior.(Nv, max_N))
+    @test all(deltas .<= 1e-10)
+end
