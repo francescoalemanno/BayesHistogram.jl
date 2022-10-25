@@ -29,16 +29,19 @@ end
 
 struct Geometric{T<:Real}
     gamma::T
+    Geometric(x::T) where T = 0<x<1 ? new{T}(x) : error("Gamma parameter must be between 0 and 1.")
 end
+
 function (w::Geometric)(max_blocks, cnt_total, cnt_single)
     # the normalisation constant can be omitted
-    return -log(w.gamma)
+    return -log(w.gamma/(1 - w.gamma))
 end
 
 
 
 struct Pearson{T<:Real}
     p::T
+    Pearson(x::T) where T = 0<x<1 ? new{T}(x) : error("probability parameter must be between 0 and 1.")
 end
 function (w::Pearson)(max_blocks, cnt_total, cnt_single)
     #                   unused
@@ -48,6 +51,7 @@ end
 
 struct Scargle{T<:Real}
     p0::T
+    Scargle(x::T) where T = 0<x<1 ? new{T}(x) : error("false positive rate parameter must be between 0 and 1.")
 end
 function (w::Scargle)(max_blocks, cnt_total, cnt_single)
     #                              unused      unused
