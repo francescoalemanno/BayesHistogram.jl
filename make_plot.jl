@@ -44,7 +44,7 @@ let
     x = collect(range(-4,4,length = 1000))
     w = ceil.(rand(rng,length(x)).*10 .+ @. ( exp(-x^2/2)*500 .+ 1))
     
-    b = bayesian_blocks(x,weights=w, resolution=80)
+    b = bayesian_blocks(x,weights=w)
     pdf = w./trapz(x,w)
     plot(x,pdf,color="red", label="noisy weighted obs")
     stephist!(x,bins = b.edges, weights=w, normalize=true, color="black", yaxis=:log,label="bayeshist",lw=2)
