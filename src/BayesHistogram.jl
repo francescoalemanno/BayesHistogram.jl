@@ -44,8 +44,8 @@ end
 function bayesian_blocks(
     t::AbstractVector{T};
     weights::AbstractVector{W}=T[],
-    prior = Scargle(T(0.05)),
-    resolution = T(Inf),
+    prior = Scargle(0.05),
+    resolution = Inf,
     min_counts::Integer = -1
 ) where {T<:Real, W<:Real}
     N = length(t)
