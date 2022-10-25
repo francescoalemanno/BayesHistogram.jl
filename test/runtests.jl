@@ -95,3 +95,9 @@ end
     @test fails == 0
     @test okays == tries
 end
+
+@testset "Integer inputs" begin
+    input_int = round.(Int, randn(1000) * 100)
+    input_float = float.(input_int)
+    bayesian_blocks(input_int) == bayesian_blocks(input_float)
+end
