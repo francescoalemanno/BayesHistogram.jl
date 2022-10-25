@@ -23,40 +23,45 @@ end
 
 struct NoPrior end
 
-function (w::NoPrior)(cnt_blocks, cnt_total, cnt_single)
+function (w::NoPrior)(max_blocks, cnt_total, cnt_single)
     zero(cnt_single)
 end
 
-struct Jeffrey{T<:Real}
-    penalty::T
+struct Geometric{T<:Real}
+    gamma::T
+end
+function (w::Geometric)(max_blocks, cnt_total, cnt_single)
+    # the normalisation constant can be omitted
+    return -log(w.gamma)
 end
 
-function (w::Jeffrey)(cnt_blocks, cnt_total, cnt_single)
-    #                   unused
-    C0 = -0.020833333333333332
-    C1 = -0.730177254404794
-    max(1 + w.penalty, zero(w.penalty)) * log(
-        (cnt_total * sqrt(cnt_total) / 2) /
-        (sqrt(cnt_single) * (C0 + cnt_total * (1 / 4 + C1 * sqrt(cnt_total) + cnt_total))),
-    )
+
+
+struct Pearson{T<:Real}
+    p::T
 end
+function (w::Pearson)(max_blocks, cnt_total, cnt_single)
+    #                   unused
+    return -cnt_total*(cnt_single/cnt_total - w.p)^2/w.p
+end
+
 
 struct Scargle{T<:Real}
     p0::T
 end
-function (w::Scargle)(cnt_blocks, cnt_total, cnt_single)
+function (w::Scargle)(max_blocks, cnt_total, cnt_single)
     #                              unused      unused
     C0 = 73.53
     C1 = -0.478
-    log(C0 * w.p0 * cnt_blocks^C1) - 4.0
+    log(C0 * w.p0 * max_blocks^C1) - 4.0
 end
 
 function bayesian_blocks(
     t::AbstractVector{T};
     weights::AbstractVector{W} = T[],
-    prior = Scargle(0.05),
+    prior = Pearson(0.05),
     resolution = Inf,
-    min_counts::Integer = -1,
+    min_counts::Integer = 0,
 ) where {T<:Real,W<:Real}
     N = length(t)
     # copy and sort the arrays
@@ -69,9 +74,6 @@ function bayesian_blocks(
         weights = weights[perm]
     end
 
-    if min_counts <= -1
-        min_counts = ceil(Int64, sqrt(sum(weights)) / 2)
-    end
     # create cell edges
     edges = [t[begin]; @views(t[begin+1:end] .+ t[begin:end-1]) ./ 2; t[end]]
 
@@ -124,20 +126,17 @@ function bayesian_blocks(
         lasts[Q] = i_max
         best[Q] = fit_max
     end
-    # Recover changepoints by iteratively peeling off the last block
-    change_points = zeros(Int, N)
-    i_cp = N + 1
-    ind = N + 1
 
+    # Recover changepoints by iteratively peeling off the last block
+    change_points = Int[]
+    sizehint!(change_points, N)
+    ind = N + 1
     while true
-        i_cp -= 1
-        change_points[i_cp] = ind
-        if ind == 1
-            break
-        end
+        push!(change_points, ind)
+        ind <= 1 && break
         ind = lasts[ind-1]
     end
-    change_points = change_points[i_cp:end]
+    reverse!(change_points)
     edges = edges[change_points]
 
     # Evaluate densities and heights
@@ -149,5 +148,5 @@ function bayesian_blocks(
     return (; edges, counts, centers, widths, heights)
 end
 
-export bayesian_blocks, Jeffrey, Scargle, NoPrior
+export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior
 end
