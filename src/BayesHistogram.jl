@@ -2,9 +2,10 @@
     main procedure: 
     bayesian_blocks(
         t::AbstractVector{T};
-        p0::T = T(5) / T(100),
-        resolution::T = T(Inf),
-        min_counts::Int = ceil(Int64, sqrt(length(t))/2)
+        weights::AbstractVector{W}=T[],
+        prior = Scargle(T(0.05)),
+        resolution = T(Inf),
+        min_counts::Integer = -1
     )
 """
 module BayesHistogram
@@ -19,11 +20,32 @@ function count_between_edges(edges,weights,observations, shift::Bool = false)
     end
     return out
 end
+
+struct Jeffrey{T<:Real}
+    prior_weight::T
+end
+
+function (w::Jeffrey)(n,n_max)
+    C0 = -0.020833333333333332
+    C1 = -0.730177254404794
+    w.prior_weight * log( (n_max*sqrt(n_max)/2)/(sqrt(n)*(C0 + n_max*(1/4 +C1*sqrt(n_max) + n_max))) )
+end
+
+struct Scargle{T<:Real}
+    p0::T
+end
+
+function (w::Scargle)(n, n_max)
+    C0 = 73.53
+    C1 = -0.478
+    log(C0*w.p0*n^C1) - 4.0
+end
+
 function bayesian_blocks(
     t::AbstractVector{T};
     weights::AbstractVector{W}=T[],
-    p0 = T(5) / T(100),
-    resolution = oftype(p0, Inf),
+    prior = Scargle(T(0.05)),
+    resolution = T(Inf),
     min_counts::Integer = -1
 ) where {T<:Real, W<:Real}
     N = length(t)
@@ -53,7 +75,6 @@ function bayesian_blocks(
     extent = t[end] - t[begin]
     # by default dt is 0 because resolution is Inf
     dt = max(abs(extent / resolution), zero(T))
-    lp0 = log(p0) + 0.2976934862081313
 
     # Start with first data cell; add one cell at each iteration
     @inbounds for Q = 1:N
@@ -65,7 +86,7 @@ function bayesian_blocks(
             width = edges[Q+1] - edges[i]
             width <= dt && break
 
-            fitness = cnt_in_range * (log(cnt_in_range / width)) + lp0 - 0.478 * log(cnt_in_range)
+            fitness = cnt_in_range * (log(cnt_in_range / width)) + prior(cnt_in_range,wh_in_edge[end])
             if i > 1
                 fitness += best[i-1]
             end
@@ -103,5 +124,5 @@ function bayesian_blocks(
     return (; edges, counts, centers, widths, heights)
 end
 
-export bayesian_blocks, count_between_edges
+export bayesian_blocks, Jeffrey, Scargle
 end
