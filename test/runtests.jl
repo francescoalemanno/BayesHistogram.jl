@@ -72,3 +72,21 @@ end
     deltas = abs.(prior .- a_prior.(Nv, max_N))
     @test all(deltas .<= 1e-10)
 end
+
+
+@testset "Robustness" begin
+    tries = 100
+    fails = 0
+    okays = 0
+    for i in 1:tries
+        x = randn(Xoshiro(1337 + 137*i), 500)
+        try
+            bl = bayesian_blocks(x)
+            okays += 1
+        catch all
+            fails += 1
+        end
+    end
+    @test fails == 0
+    @test okays == tries
+end
