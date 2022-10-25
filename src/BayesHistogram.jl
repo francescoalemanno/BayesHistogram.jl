@@ -100,11 +100,11 @@ function bayesian_blocks(
         lasts[Q] = i_max
         best[Q] = fit_max
     end
-
     # Recover changepoints by iteratively peeling off the last block
     change_points = zeros(Int, N)
     i_cp = N + 1
     ind = N + 1
+
     while true
         i_cp -= 1
         change_points[i_cp] = ind
