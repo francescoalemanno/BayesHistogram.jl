@@ -21,24 +21,32 @@ function count_between_edges(edges,weights,observations, shift::Bool = false)
     return out
 end
 
-struct Jeffrey{T<:Real}
-    prior_weight::T
+struct NoPrior
 end
 
-function (w::Jeffrey)(n,n_max)
+function (w::NoPrior)(cnt_blocks, cnt_total, cnt_single)
+    zero(cnt_single)
+end
+
+struct Jeffrey{T<:Real}
+    penalty::T
+end
+
+function (w::Jeffrey)(cnt_blocks, cnt_total, cnt_single)
+    #                   unused
     C0 = -0.020833333333333332
     C1 = -0.730177254404794
-    w.prior_weight * log( (n_max*sqrt(n_max)/2)/(sqrt(n)*(C0 + n_max*(1/4 +C1*sqrt(n_max) + n_max))) )
+    max(1+w.penalty, zero(w.penalty))*log( (cnt_total*sqrt(cnt_total)/2)/(sqrt(cnt_single)*(C0 + cnt_total*(1/4 +C1*sqrt(cnt_total) + cnt_total))) )
 end
 
 struct Scargle{T<:Real}
     p0::T
 end
-
-function (w::Scargle)(n, n_max)
+function (w::Scargle)(cnt_blocks, cnt_total, cnt_single)
+    #                              unused      unused
     C0 = 73.53
     C1 = -0.478
-    log(C0*w.p0*n^C1) - 4.0
+    log(C0*w.p0*cnt_blocks^C1) - 4.0
 end
 
 function bayesian_blocks(
@@ -88,7 +96,6 @@ function bayesian_blocks(
     extent = t[end] - t[begin]
     # by default dt is 0 because resolution is Inf
     dt = max(abs(extent / resolution), zero(T))
-
     # Start with first data cell; add one cell at each iteration
     @inbounds for Q = 1:N
         fit_max = -Inf
@@ -99,7 +106,7 @@ function bayesian_blocks(
             width = edges[Q+1] - edges[i]
             width <= dt && break
 
-            fitness = cnt_in_range * (log(cnt_in_range / width)) + prior(cnt_in_range,wh_in_edge[end])
+            fitness = cnt_in_range * (log(cnt_in_range / width)) + prior(N, wh_in_edge[end], cnt_in_range)
             if i > 1
                 fitness += best[i-1]
             end
@@ -138,5 +145,5 @@ function bayesian_blocks(
     return (; edges, counts, centers, widths, heights)
 end
 
-export bayesian_blocks, Jeffrey, Scargle
+export bayesian_blocks, Jeffrey, Scargle, NoPrior
 end
