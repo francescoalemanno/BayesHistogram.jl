@@ -9,10 +9,10 @@
     )
 """
 module BayesHistogram
-function count_between_edges(edges,weights,observations, shift::Bool = false)
+function count_between_edges(edges, weights, observations, shift::Bool = false)
     i = 1
     out = zeros(length(edges) - 1 + shift)
-    for (el,w) in zip(observations,weights)
+    for (el, w) in zip(observations, weights)
         while !(edges[i] <= el <= edges[i+1])
             i += 1
         end
@@ -21,47 +21,63 @@ function count_between_edges(edges,weights,observations, shift::Bool = false)
     return out
 end
 
-struct Jeffrey{T<:Real}
-    prior_weight::T
+struct NoPrior end
+
+function (w::NoPrior)(max_blocks, cnt_total, cnt_single)
+    zero(cnt_single)
 end
 
-function (w::Jeffrey)(n,n_max)
-    C0 = -0.020833333333333332
-    C1 = -0.730177254404794
-    w.prior_weight * log( (n_max*sqrt(n_max)/2)/(sqrt(n)*(C0 + n_max*(1/4 +C1*sqrt(n_max) + n_max))) )
+struct Geometric{T<:Real}
+    gamma::T
+    Geometric(x::T) where T = 0<x<1 ? new{T}(x) : error("Gamma parameter must be between 0 and 1.")
 end
+
+function (w::Geometric)(max_blocks, cnt_total, cnt_single)
+    # the normalisation constant can be omitted
+    return -log(w.gamma/(1 - w.gamma))
+end
+
+
+
+struct Pearson{T<:Real}
+    p::T
+    Pearson(x::T) where T = 0<x<1 ? new{T}(x) : error("probability parameter must be between 0 and 1.")
+end
+function (w::Pearson)(max_blocks, cnt_total, cnt_single)
+    #                   unused
+    return -cnt_total*(cnt_single/cnt_total - w.p)^2/w.p
+end
+
 
 struct Scargle{T<:Real}
     p0::T
+    Scargle(x::T) where T = 0<x<1 ? new{T}(x) : error("false positive rate parameter must be between 0 and 1.")
 end
-
-function (w::Scargle)(n, n_max)
+function (w::Scargle)(max_blocks, cnt_total, cnt_single)
+    #                              unused      unused
     C0 = 73.53
     C1 = -0.478
-    log(C0*w.p0*n^C1) - 4.0
+    log(C0 * w.p0 * max_blocks^C1) - 4.0
 end
 
 function bayesian_blocks(
     t::AbstractVector{T};
-    weights::AbstractVector{W}=T[],
-    prior = Scargle(0.05),
+    weights::AbstractVector{W} = T[],
+    prior = Pearson(0.05),
     resolution = Inf,
-    min_counts::Integer = -1
-) where {T<:Real, W<:Real}
+    min_counts::Integer = 0,
+) where {T<:Real,W<:Real}
     N = length(t)
     # copy and sort the arrays
     perm = sortperm(t)
     t = t[perm]
-    
+
     if length(weights) == 0
-        weights = ones(T,N)
+        weights = ones(T, N)
     else
         weights = weights[perm]
     end
 
-    if min_counts <= -1
-        min_counts = ceil(Int64, sqrt(sum(weights))/2)
-    end
     # create cell edges
     edges = [t[begin]; @views(t[begin+1:end] .+ t[begin:end-1]) ./ 2; t[end]]
 
@@ -88,18 +104,19 @@ function bayesian_blocks(
     extent = t[end] - t[begin]
     # by default dt is 0 because resolution is Inf
     dt = max(abs(extent / resolution), zero(T))
-
     # Start with first data cell; add one cell at each iteration
     @inbounds for Q = 1:N
         fit_max = -Inf
         i_max = 0
-        for i = 1 : Q
+        for i = 1:Q
             cnt_in_range = wh_in_edge[Q+1] - wh_in_edge[i]
             cnt_in_range < min_counts && break
             width = edges[Q+1] - edges[i]
             width <= dt && break
 
-            fitness = cnt_in_range * (log(cnt_in_range / width)) + prior(cnt_in_range,wh_in_edge[end])
+            fitness =
+                cnt_in_range * (log(cnt_in_range / width)) +
+                prior(N, wh_in_edge[end], cnt_in_range)
             if i > 1
                 fitness += best[i-1]
             end
@@ -113,24 +130,21 @@ function bayesian_blocks(
         lasts[Q] = i_max
         best[Q] = fit_max
     end
-    # Recover changepoints by iteratively peeling off the last block
-    change_points = zeros(Int, N)
-    i_cp = N + 1
-    ind = N + 1
 
+    # Recover changepoints by iteratively peeling off the last block
+    change_points = Int[]
+    sizehint!(change_points, N)
+    ind = N + 1
     while true
-        i_cp -= 1
-        change_points[i_cp] = ind
-        if ind == 1
-            break
-        end
+        push!(change_points, ind)
+        ind <= 1 && break
         ind = lasts[ind-1]
     end
-    change_points = change_points[i_cp:end]
+    reverse!(change_points)
     edges = edges[change_points]
-    
+
     # Evaluate densities and heights
-    centers =  @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
+    centers = @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
     counts = count_between_edges(edges, weights, t)
     total = sum(counts)
     widths = diff(edges)
@@ -138,5 +152,5 @@ function bayesian_blocks(
     return (; edges, counts, centers, widths, heights)
 end
 
-export bayesian_blocks, Jeffrey, Scargle
+export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior
 end

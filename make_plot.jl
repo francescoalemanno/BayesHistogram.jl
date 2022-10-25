@@ -1,3 +1,4 @@
+#has been run only with julia 1.8+
 using Plots, Random, Statistics
 using BayesHistogram
 let
@@ -14,7 +15,7 @@ let
         randn(rng,N2).*0.08 .+ sqrt(8);
     ])
 
-    b = bayesian_blocks(x)
+    b = bayesian_blocks(x, prior = Geometric(0.995))
     P = []
 
     edg_equi_area = quantile(x, range(0,1,length=ceil(Int, 2*length(x)^(1.88/5))))
@@ -42,9 +43,9 @@ let
     gr()
     rng = Xoshiro(123514)
     x = collect(range(-4,4,length = 300))
-    w = ceil.(rand(rng,length(x)).*100 .+ @. ( exp(-x^2/2)*500 .+ 1))
+    w = ceil.(rand(rng,length(x)).*10 .+ @. ( exp(-x^2/2)*50 + 1 ))
     #in this case let's use the non-informative prior
-    b = bayesian_blocks(x, weights=w, prior = Jeffrey(3.0))
+    b = bayesian_blocks(x, weights=w)
     pdf = w./trapz(x,w)
     plot(x,pdf,color="red", label="noisy weighted obs")
     stephist!(x,bins = b.edges, weights=w, normalize=true, color="black", yaxis=:log,label="bayeshist",lw=2)
