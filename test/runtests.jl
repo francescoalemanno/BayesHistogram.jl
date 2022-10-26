@@ -195,6 +195,6 @@ end
     blwrong = bayesian_blocks(x_rebin2, weights = wh_rebin2, prior=Pearson(0.5))
     blright = bayesian_blocks(x_rebin2, weights = wh_rebin2, prior=Pearson(0.5),
                         sumw2 = sumw2_rebin2)
-    @test blwrong != blright
+    @test blwrong.error_counts ≉ blright.error_counts atol=3
     @test bl.error_counts ≈ blright.error_counts atol=0.5
 end
