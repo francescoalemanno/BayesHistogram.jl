@@ -99,10 +99,9 @@ end
 function build_blocks(t, edges, weights)
     centers = @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
     counts = count_between_edges(edges, weights, t)
-    counts0 = count_between_edges(edges, one.(weights), t)
     counts2 = count_between_edges(edges, weights .^ 2, t)
-    error_counts = sqrt.(counts2 .- (counts .^ 2) ./ counts0)
     total = sum(counts)
+    error_counts = sqrt.(counts2 .- counts.^2 ./ total)
     widths = diff(edges)
     heights = counts ./ (total .* widths)
     error_heights = error_counts ./ (total .* widths)

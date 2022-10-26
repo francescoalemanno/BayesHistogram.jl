@@ -154,3 +154,30 @@ end
     @test bayesian_blocks([1.0]).counts[1] == 1
     @test bayesian_blocks(Float64[]).counts[1] == 0
 end
+
+@testset "error statistics" begin
+    wh_dists = [
+        rand(StableRNG(1338), length(x)), 
+        one.(x),
+        randexp(StableRNG(1338), length(x)),
+    ]
+    for wh in wh_dists
+        bl = bayesian_blocks(x, weights = wh)
+        m0 = 0
+        m1 = zero.(bl.counts)
+        m2 = zero.(bl.counts)
+        for i in 1:500
+            bx = rand(StableRNG(1337+i*137), x, length(x))
+            sx,sw = BayesHistogram.sanitize(bx,wh)
+            cn = BayesHistogram.count_between_edges(bl.edges,sw,sx,false)
+            m0+=1
+            m1.+=cn
+            m2.+=cn.^2
+        end
+        m1./=m0
+        m2./=m0
+        bs_err = sqrt.(m2 .- m1.^2)
+        ratio_diff = abs.(bs_err ./ bl.error_counts .- 1)
+        @test sort(ratio_diff)[end÷2] < 0.06
+    end
+end

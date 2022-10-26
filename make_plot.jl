@@ -54,7 +54,7 @@ let
     gr()
     rng = Xoshiro(12351)
     x = collect(range(-4, 4, length = 300))
-    w = ceil.(rand(rng, length(x)) .* 5 .+ @. (exp(-x^2 / 2) * 15 + 1))
+    w = ceil.(rand(rng, length(x)) .* 5 .+ @. (exp(-x^2 / 2) * 15))
     pdf = w ./ trapz(x, w)
 
     b = bayesian_blocks(x, weights = w, prior = Pearson(0.07))
@@ -68,6 +68,7 @@ let
         color = "black",
         label = "bayeshist",
         lw = 2,
+        yaxis=:log,
     )
     scatter!(
         b.centers,
