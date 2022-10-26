@@ -4,7 +4,7 @@
         t::AbstractVector{T};
         weights::AbstractVector{W} = one.(t),
         sumw2::AbstractVector{W} = abs2.(weights),
-        prior = Pearson(0.05),
+        prior = BIC(),
         resolution = Inf,
         min_counts::Real = 0,
     ) where {T<:Real,W<:Real}
@@ -71,7 +71,7 @@ end
         datas::AbstractVector{T};
         weights::AbstractVector{W} = one.(t),
         sumw2::AbstractVector{W} = abs2.(weights),
-        prior = Pearson(0.05),
+        prior = BIC(),
         resolution = Inf,
         min_counts::Real = 0,
     ) where {T<:Real,W<:Real}
@@ -90,7 +90,7 @@ function bayesian_blocks(
     t::AbstractVector{T};
     weights::AbstractVector{W} = one.(t),
     sumw2::AbstractVector{W} = abs2.(weights),
-    prior = Pearson(0.05),
+    prior = BIC(),
     resolution = Inf,
     min_counts::Real = 0,
 ) where {T<:Real,W<:Real}
@@ -173,5 +173,5 @@ function bayesian_blocks(
     return build_blocks(t, edges, weights, sumw2)
 end
 
-export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior
+export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior, BIC, AIC, HQIC
 end
