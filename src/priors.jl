@@ -42,3 +42,21 @@ function (w::Scargle)(max_blocks, cnt_total, cnt_single)
     log(C0 * w.p0 * max_blocks^C1) - 4.0
 end
 
+struct AIC end
+
+function (w::AIC)(max_blocks, cnt_total, cnt_single)
+    -1
+end
+
+struct HQIC end
+
+function (w::HQIC)(max_blocks, cnt_total, cnt_single)
+    -log(log(cnt_total))
+end
+
+struct BIC end
+
+function (w::BIC)(max_blocks, cnt_total, cnt_single)
+    -log(cnt_total)
+end
+

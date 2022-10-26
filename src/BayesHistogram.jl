@@ -4,7 +4,7 @@
         t::AbstractVector{T};
         weights::AbstractVector{W} = one.(t),
         sumw2::AbstractVector{W} = abs2.(weights),
-        prior = Pearson(0.05),
+        prior = BIC(),
         resolution = Inf,
         min_counts::Real = 0,
     ) where {T<:Real,W<:Real}
@@ -71,7 +71,7 @@ end
         datas::AbstractVector{T};
         weights::AbstractVector{W} = one.(t),
         sumw2::AbstractVector{W} = abs2.(weights),
-        prior = Pearson(0.05),
+        prior = BIC(),
         resolution = Inf,
         min_counts::Real = 0,
     ) where {T<:Real,W<:Real}
@@ -81,7 +81,7 @@ end
 - `sumw2`: sum of weight^2 in each observation, this is particularly useful
 when this algorihtm is used for re-binning of already made histograms where
 the `sumw2` for each bin is different from `weight^2` of each bin.
-- `prior`: choose from `NoPrior`, `Pearson`, `Geometric`
+- `prior`: choose from `NoPrior`, `Pearson`, `Geometric`, `BIC`, `AIC`, `HQIC`
 - resolution: handles on how fine we count along the `datas axis
 - min_counts: minimum sum of weights of a block that can be splitted.
 
@@ -90,7 +90,7 @@ function bayesian_blocks(
     t::AbstractVector{T};
     weights::AbstractVector{W} = one.(t),
     sumw2::AbstractVector{W} = abs2.(weights),
-    prior = Pearson(0.05),
+    prior = BIC(),
     resolution = Inf,
     min_counts::Real = 0,
 ) where {T<:Real,W<:Real}
@@ -173,5 +173,5 @@ function bayesian_blocks(
     return build_blocks(t, edges, weights, sumw2)
 end
 
-export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior
+export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior, BIC, AIC, HQIC
 end

@@ -18,7 +18,7 @@ let
         ],
     )
     @. x = round(x * 100) / 100
-    b = bayesian_blocks(x, prior = Geometric(0.995))
+    b = bayesian_blocks(x, prior = BIC())
     P = []
 
     edg_equi_area = quantile(x, range(0, 1, length = ceil(Int, 2 * length(x)^(1.88 / 5))))
@@ -63,10 +63,10 @@ let
     gr()
     rng = Xoshiro(12351)
     x = collect(range(-4, 4, length = 300))
-    w = ceil.(rand(rng, length(x)) .* 5 .+ @. (exp(-x^2 / 2) * 15))
+    w = ceil.((rand(rng, length(x)) .* 3 .+ @. (exp(-x^2 / 2) * 15)))
     pdf = w ./ trapz(x, w)
 
-    b = bayesian_blocks(x, weights = w, prior = Pearson(0.07))
+    b = bayesian_blocks(x, weights = w, prior = AIC())
 
     plot(x, pdf, color = "red", label = "noisy weighted obs", lw = 0.5)
     stephist!(

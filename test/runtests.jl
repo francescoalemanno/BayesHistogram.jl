@@ -1,6 +1,6 @@
 using BayesHistogram, Test, Random, StableRNGs
 const x = randn(StableRNG(1337), 5000)
-
+const default_prior = Pearson(0.05)
 @testset "basic test BayesHistogram 1" begin
     ref = [
         -3.1578070050937224,
@@ -25,7 +25,7 @@ const x = randn(StableRNG(1337), 5000)
         1.7117859538444158,
         3.8845391427592286,
     ]
-    bl = bayesian_blocks(x, resolution = 100.0, min_counts = 2).edges
+    bl = bayesian_blocks(x, prior = default_prior, resolution = 100.0, min_counts = 2).edges
     @test all(bl .≈ ref)
 end
 
@@ -42,7 +42,7 @@ end
         3.8845391427592286,
     ]
 
-    bl = bayesian_blocks(x, resolution = 10.0, min_counts = 2).edges
+    bl = bayesian_blocks(x, prior = default_prior, resolution = 10.0, min_counts = 2).edges
     @test all(bl .≈ ref)
 end
 
@@ -61,7 +61,7 @@ end
         2.017887657637233,
         3.8845391427592286,
     ]
-    bl = bayesian_blocks(x, resolution = 15.0).edges
+    bl = bayesian_blocks(x, prior = default_prior, resolution = 15.0).edges
     @test all(bl .≈ ref)
 end
 
@@ -75,7 +75,7 @@ end
         1.3869351312751794,
         3.8845391427592286,
     ]
-    bl = bayesian_blocks(x, weights = w, resolution = 5.0).edges
+    bl = bayesian_blocks(x, prior = default_prior, weights = w, resolution = 5.0).edges
 
     @test all(bl .≈ ref)
 
@@ -103,7 +103,7 @@ end
         3.8845391427592286,
     ]
 
-    bl = bayesian_blocks(x, weights = w, resolution = 50.0).edges
+    bl = bayesian_blocks(x, prior = default_prior, weights = w, resolution = 50.0).edges
 
     @test all(bl .≈ ref)
 end
@@ -114,7 +114,7 @@ end
 end
 
 @testset "Robustness" begin
-    for pr in [Pearson(0.05), Geometric(0.05), Scargle(0.05), NoPrior()]
+    for pr in [Pearson(0.05), Geometric(0.05), Scargle(0.05), NoPrior(), BIC(), AIC(), HQIC()]
         tries = 100
         fails = 0
         okays = 0
@@ -166,7 +166,7 @@ end
     ]
     for wh in wh_dists
         wh2 = wh.^2
-        bl = bayesian_blocks(x, weights = wh)
+        bl = bayesian_blocks(x, weights = wh, prior = default_prior)
         m0 = 0
         m1 = zero.(bl.counts)
         m2 = zero.(bl.counts)
