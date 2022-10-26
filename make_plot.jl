@@ -7,18 +7,21 @@ let
     N1 = 3000
     N2 = 1000
 
-    x = shuffle(rng,[
-        randexp(rng,N1); 
-        randn(rng,N2).*0.02 .+ sqrt(1); 
-        randn(rng,N2).*0.02 .+ sqrt(2); 
-        randn(rng,N2).*0.04 .+ sqrt(4); 
-        randn(rng,N2).*0.08 .+ sqrt(8);
-    ])
-    @. x  = round(x*100)/100
+    x = shuffle(
+        rng,
+        [
+            randexp(rng, N1)
+            randn(rng, N2) .* 0.02 .+ sqrt(1)
+            randn(rng, N2) .* 0.02 .+ sqrt(2)
+            randn(rng, N2) .* 0.04 .+ sqrt(4)
+            randn(rng, N2) .* 0.08 .+ sqrt(8)
+        ],
+    )
+    @. x = round(x * 100) / 100
     b = bayesian_blocks(x, prior = Geometric(0.995))
     P = []
 
-    edg_equi_area = quantile(x, range(0,1,length=ceil(Int, 2*length(x)^(1.88/5))))
+    edg_equi_area = quantile(x, range(0, 1, length = ceil(Int, 2 * length(x)^(1.88 / 5))))
     Hs = [
         ("Bayes Histogram", b.edges),
         ("EquiArea", edg_equi_area),
@@ -27,12 +30,20 @@ let
     ]
 
     for (lab, bin) in Hs
-        pl = stephist(x, label=:none, bins=bin, yaxis=:log, normalize=:density, lw=1, grid=false)
+        pl = stephist(
+            x,
+            label = :none,
+            bins = bin,
+            yaxis = :log,
+            normalize = :pdf,
+            lw = 1,
+            grid = false,
+        )
         title!(pl, lab, titlefont = font(12))
         push!(P, pl)
     end
 
-    p = plot!(P..., layout = @layout([a b;c d]), size=(500,300).*1.3)
+    p = plot!(P..., layout = @layout([a b; c d]), size = (500, 300) .* 1.3)
     savefig(p, "plot.png")
     p
 end
@@ -41,14 +52,32 @@ end
 using Trapz
 let
     gr()
-    rng = Xoshiro(123514)
-    x = collect(range(-4,4,length = 300))
-    w = ceil.(rand(rng,length(x)).*10 .+ @. ( exp(-x^2/2)*50 + 1 ))
-    #in this case let's use the non-informative prior
-    b = bayesian_blocks(x, weights=w)
-    pdf = w./trapz(x,w)
-    plot(x,pdf,color="red", label="noisy weighted obs")
-    stephist!(x,bins = b.edges, weights=w, normalize=true, color="black", yaxis=:log,label="bayeshist",lw=2)
+    rng = Xoshiro(12351)
+    x = collect(range(-4, 4, length = 300))
+    w = ceil.(rand(rng, length(x)) .* 5 .+ @. (exp(-x^2 / 2) * 15 + 1))
+    pdf = w ./ trapz(x, w)
+
+    b = bayesian_blocks(x, weights = w, prior = Pearson(0.07))
+
+    plot(x, pdf, color = "red", label = "noisy weighted obs", lw = 0.5)
+    stephist!(
+        x,
+        bins = b.edges,
+        weights = w,
+        normalize = :pdf,
+        color = "black",
+        label = "bayeshist",
+        lw = 2,
+    )
+    scatter!(
+        b.centers,
+        b.heights,
+        yerr = b.error_heights,
+        label = :none,
+        color = "black",
+        lw = 2,
+    )
+
     savefig("plot2.png")
     plot!()
 end
