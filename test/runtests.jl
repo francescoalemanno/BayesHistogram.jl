@@ -181,3 +181,20 @@ end
         @test sort(ratio_diff)[end÷2] < 0.06
     end
 end
+
+@testset "error with custom sumw2" begin
+    wh = rand(StableRNG(1338), length(x))
+    wh_rebin2 = map(1:2:length(x)-1) do i
+        sum(wh[i] + wh[i+1])
+    end
+    sumw2_rebin2 = map(1:2:length(x)-1) do i
+        sum(wh[i]^2 + wh[i+1]^2)
+    end
+    x_rebin2 = x[begin:2:end]
+    bl = bayesian_blocks(x, weights = wh, prior=Pearson(0.5))
+    blwrong = bayesian_blocks(x_rebin2, weights = wh_rebin2, prior=Pearson(0.5))
+    blright = bayesian_blocks(x_rebin2, weights = wh_rebin2, prior=Pearson(0.5),
+                        sumw2 = sumw2_rebin2)
+    @test blwrong.error_counts ≉ blright.error_counts atol=3
+    @test bl.error_counts ≈ blright.error_counts atol=0.5
+end
