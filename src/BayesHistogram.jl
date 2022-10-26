@@ -2,13 +2,44 @@
     main procedure: 
     bayesian_blocks(
         t::AbstractVector{T};
-        weights::AbstractVector{W}=T[],
-        prior = Scargle(T(0.05)),
-        resolution = T(Inf),
-        min_counts::Integer = -1
+        weights::AbstractVector{W} = T[],
+        prior = Pearson(0.05),
+        resolution = Inf,
+        min_counts::Integer = 0,
     )
 """
 module BayesHistogram
+
+function sort_sane(raw_x, raw_w)
+    p = sortperm(raw_x)
+    tmp_x = raw_x[p]
+    tmp_w = raw_w[p]
+    f = tmp_w .> 0
+    tmp_x[f], tmp_w[f]
+end
+
+function sanitize(raw_x, raw_w)
+    # todo: make more efficient
+    if length(raw_w) == 0
+        raw_w = one.(raw_x)
+    end
+    # first round:
+    # - sort by x
+    # - skip values with weights < 0
+    x, w = sort_sane(raw_x, raw_w)
+    # second round:
+    # - merge entries with same x value
+    m = fill(true,length(x))
+    for i in 2:length(x)
+        if x[i] == x[i-1] && m[i-1] && m[i] # merge
+            m[i-1] = false
+            w[i] += w[i-1]
+            w[i-1] = 0
+        end
+    end
+    return x[m], w[m] 
+end
+
 function count_between_edges(edges, weights, observations, shift::Bool = false)
     i = 1
     out = zeros(length(edges) - 1 + shift)
@@ -29,35 +60,49 @@ end
 
 struct Geometric{T<:Real}
     gamma::T
-    Geometric(x::T) where T = 0<x<1 ? new{T}(x) : error("Gamma parameter must be between 0 and 1.")
+    Geometric(x::T) where {T} =
+        0 < x < 1 ? new{T}(x) : error("Gamma parameter must be between 0 and 1.")
 end
 
 function (w::Geometric)(max_blocks, cnt_total, cnt_single)
     # the normalisation constant can be omitted
-    return -log(w.gamma/(1 - w.gamma))
+    return -log(w.gamma / (1 - w.gamma))
 end
 
 
 
 struct Pearson{T<:Real}
     p::T
-    Pearson(x::T) where T = 0<x<1 ? new{T}(x) : error("probability parameter must be between 0 and 1.")
+    Pearson(x::T) where {T} =
+        0 < x < 1 ? new{T}(x) : error("probability parameter must be between 0 and 1.")
 end
 function (w::Pearson)(max_blocks, cnt_total, cnt_single)
     #                   unused
-    return -cnt_total*(cnt_single/cnt_total - w.p)^2/w.p
+    return -cnt_total * (cnt_single / cnt_total - w.p)^2 / w.p
 end
 
 
 struct Scargle{T<:Real}
     p0::T
-    Scargle(x::T) where T = 0<x<1 ? new{T}(x) : error("false positive rate parameter must be between 0 and 1.")
+    Scargle(x::T) where {T} =
+        0 < x < 1 ? new{T}(x) :
+        error("false positive rate parameter must be between 0 and 1.")
 end
+
 function (w::Scargle)(max_blocks, cnt_total, cnt_single)
     #                              unused      unused
     C0 = 73.53
     C1 = -0.478
     log(C0 * w.p0 * max_blocks^C1) - 4.0
+end
+
+function build_blocks(t, edges, weights)
+    centers = @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
+    counts = count_between_edges(edges, weights, t)
+    total = sum(counts)
+    widths = diff(edges)
+    heights = counts ./ (total .* widths)
+    return (; edges, counts, centers, widths, heights)
 end
 
 function bayesian_blocks(
@@ -67,17 +112,16 @@ function bayesian_blocks(
     resolution = Inf,
     min_counts::Integer = 0,
 ) where {T<:Real,W<:Real}
-    N = length(t)
     # copy and sort the arrays
-    perm = sortperm(t)
-    t = t[perm]
-
-    if length(weights) == 0
-        weights = ones(T, N)
-    else
-        weights = weights[perm]
+    t, weights = sanitize(t, weights)
+    
+    # check trivial cases
+    N = length(t)
+    if N == 0
+        return build_blocks(T[], T[-Inf,Inf], T[])
+    elseif N == 1
+        return build_blocks(t, T[t[1],t[1]], weights)
     end
-
     # create cell edges
     edges = [t[begin]; @views(t[begin+1:end] .+ t[begin:end-1]) ./ 2; t[end]]
 
@@ -144,12 +188,7 @@ function bayesian_blocks(
     edges = edges[change_points]
 
     # Evaluate densities and heights
-    centers = @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
-    counts = count_between_edges(edges, weights, t)
-    total = sum(counts)
-    widths = diff(edges)
-    heights = counts ./ (total .* widths)
-    return (; edges, counts, centers, widths, heights)
+    return build_blocks(t, edges, weights)
 end
 
 export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior
