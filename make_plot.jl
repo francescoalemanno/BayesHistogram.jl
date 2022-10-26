@@ -28,7 +28,7 @@ let
         ("Rice", :rice),
         ("Sqrt", :sqrt),
     ]
-
+    i = 1
     for (lab, bin) in Hs
         pl = stephist(
             x,
@@ -39,8 +39,17 @@ let
             lw = 1,
             grid = false,
         )
+        i == 1 && scatter!(pl,
+            b.centers,
+            b.heights,
+            yerr = b.error_heights,
+            label = :none,
+            lw = 2.0,
+            markersize= 2.0
+        )
         title!(pl, lab, titlefont = font(12))
         push!(P, pl)
+        i += 1
     end
 
     p = plot!(P..., layout = @layout([a b; c d]), size = (500, 300) .* 1.3)

@@ -13,19 +13,20 @@ module BayesHistogram
 
 include("priors.jl")
 
-function sort_sane(raw_x, raw_w)
+function sort_sane(raw_x, raw_w, raw_w2)
     p = sortperm(raw_x)
     tmp_x = raw_x[p]
     tmp_w = raw_w[p]
+    tmp_w2 = raw_w2[p]
     f = tmp_w .> 0
-    tmp_x[f], tmp_w[f]
+    tmp_x[f], tmp_w[f], tmp_w2[f]
 end
 
-function sanitize(raw_x, raw_w)
+function sanitize(raw_x, raw_w, raw_w2)
     # first round:
     # - sort by x
     # - skip values with weights < 0
-    x, w = sort_sane(raw_x, raw_w)
+    x, w, w2 = sort_sane(raw_x, raw_w, raw_w2)
     # second round:
     # - merge entries with same x value
     m = fill(true, length(x))
@@ -33,10 +34,12 @@ function sanitize(raw_x, raw_w)
         if x[i] == x[i-1] && m[i-1] && m[i] # merge
             m[i-1] = false
             w[i] += w[i-1]
+            w2[i] += w2[i-1]
             w[i-1] = 0
+            w2[i-1] = 0
         end
     end
-    return x[m], w[m]
+    return x[m], w[m], w2[m]
 end
 
 function count_between_edges(edges, weights, observations, shift::Bool = false)
@@ -50,12 +53,13 @@ function count_between_edges(edges, weights, observations, shift::Bool = false)
     end
     return out
 end
+
 function build_blocks(t, edges, weights, weights2)
     centers = @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
     counts = count_between_edges(edges, weights, t)
     counts2 = count_between_edges(edges, weights2, t)
     total = sum(counts)
-    error_counts = sqrt.(counts2 .- counts.^2 ./ total)
+    error_counts = sqrt.(max.(counts2 .- counts.^2 ./ total, 0))
     widths = diff(edges)
     heights = counts ./ (total .* widths)
     error_heights = error_counts ./ (total .* widths)
@@ -91,7 +95,7 @@ function bayesian_blocks(
     min_counts::Real = 0,
 ) where {T<:Real,W<:Real}
     # copy and sort the arrays
-    t, weights = sanitize(t, weights)
+    t, weights, sumw2 = sanitize(t, weights, sumw2)
     
     # check trivial cases
     N = length(t)

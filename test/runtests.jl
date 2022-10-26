@@ -141,13 +141,16 @@ end
 @testset "sanitize" begin
     xc = @. round(100 * x) / 100
     w = fill(1, 5000)
+    w2 = w.^2
     idx = shuffle(StableRNG(1337), 1:5000)[1:4000]
     w[idx] .= 0
-    xt, wt = BayesHistogram.sanitize(xc, w)
+    w2[idx] .= 0
+    xt, wt, wt2 = BayesHistogram.sanitize(xc, w, w2)
     @test all(xt .== unique(xt))
     @test all(wt .> 0)
     @test issorted(xt)
     @test sum(wt) == sum(w)
+    @test sum(wt2) == sum(w2)
 end
 
 @testset "trivial datasets" begin
@@ -162,13 +165,14 @@ end
         randexp(StableRNG(1338), length(x)),
     ]
     for wh in wh_dists
+        wh2 = wh.^2
         bl = bayesian_blocks(x, weights = wh)
         m0 = 0
         m1 = zero.(bl.counts)
         m2 = zero.(bl.counts)
         for i in 1:500
             bx = rand(StableRNG(1337+i*137), x, length(x))
-            sx,sw = BayesHistogram.sanitize(bx,wh)
+            sx,sw,sw2 = BayesHistogram.sanitize(bx,wh,wh2)
             cn = BayesHistogram.count_between_edges(bl.edges,sw,sx,false)
             m0+=1
             m1.+=cn
@@ -197,4 +201,27 @@ end
                         sumw2 = sumw2_rebin2)
     @test blwrong.error_counts ≉ blright.error_counts atol=3
     @test bl.error_counts ≈ blright.error_counts atol=0.5
+end
+
+@testset "test severely rounded data" begin
+    rng = StableRNG(123514)
+    N1 = 3000
+    N2 = 1000
+
+    data = shuffle(
+        rng,
+        [
+            randexp(rng, N1)
+            randn(rng, N2) .* 0.02 .+ sqrt(1)
+            randn(rng, N2) .* 0.02 .+ sqrt(2)
+            randn(rng, N2) .* 0.04 .+ sqrt(4)
+            randn(rng, N2) .* 0.08 .+ sqrt(8)
+        ],
+    )
+
+    bl_noround = bayesian_blocks(data, prior = Pearson(0.2))
+    @. data = round(data * 100) / 100
+    bl_round = bayesian_blocks(data, prior = Pearson(0.2))
+    @test sum(abs2,(bl_noround.edges .- bl_round.edges)) < 0.0005
+    @test sum(abs2,(bl_noround.error_counts .- bl_round.error_counts)) < 0.2
 end
