@@ -29,15 +29,15 @@ function sanitize(raw_x, raw_w)
     x, w = sort_sane(raw_x, raw_w)
     # second round:
     # - merge entries with same x value
-    m = fill(true,length(x))
-    for i in 2:length(x)
+    m = fill(true, length(x))
+    for i = 2:length(x)
         if x[i] == x[i-1] && m[i-1] && m[i] # merge
             m[i-1] = false
             w[i] += w[i-1]
             w[i-1] = 0
         end
     end
-    return x[m], w[m] 
+    return x[m], w[m]
 end
 
 function count_between_edges(edges, weights, observations, shift::Bool = false)
@@ -99,10 +99,13 @@ end
 function build_blocks(t, edges, weights)
     centers = @views(edges[begin:end-1] .+ edges[begin+1:end]) ./ 2
     counts = count_between_edges(edges, weights, t)
+    counts2 = count_between_edges(edges, weights .^ 2, t)
     total = sum(counts)
+    error_counts = sqrt.(counts2 .- counts.^2 ./ total)
     widths = diff(edges)
     heights = counts ./ (total .* widths)
-    return (; edges, counts, centers, widths, heights)
+    error_heights = error_counts ./ (total .* widths)
+    return (; edges, counts, centers, widths, heights, error_counts, error_heights)
 end
 
 function bayesian_blocks(
@@ -118,9 +121,9 @@ function bayesian_blocks(
     # check trivial cases
     N = length(t)
     if N == 0
-        return build_blocks(T[], T[-Inf,Inf], T[])
+        return build_blocks(T[], T[-Inf, Inf], T[])
     elseif N == 1
-        return build_blocks(t, T[t[1],t[1]], weights)
+        return build_blocks(t, T[t[1], t[1]], weights)
     end
     # create cell edges
     edges = [t[begin]; @views(t[begin+1:end] .+ t[begin:end-1]) ./ 2; t[end]]
