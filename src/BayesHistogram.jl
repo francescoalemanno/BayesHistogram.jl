@@ -10,8 +10,33 @@
     ) where {T<:Real,W<:Real}
 """
 module BayesHistogram
-
 include("priors.jl")
+
+struct BHist{T<:Real}
+    edges::Vector{T}
+    counts::Vector{T}
+    centers::Vector{T}
+    widths::Vector{T}
+    heights::Vector{T}
+    error_counts::Vector{T}
+    error_heights::Vector{T}
+end
+
+function to_pdf(h::BHist{T}; lb = minimum(h.heights)/3) where T
+    X = T[]
+    Y = T[]
+    push!(X, h.edges[begin])
+    push!(Y, lb)
+    for i in eachindex(h.heights)
+        push!(X, h.edges[i])
+        push!(X, h.edges[i+1])
+        push!(Y, h.heights[i])
+        push!(Y, h.heights[i])
+    end
+    push!(X, h.edges[end])
+    push!(Y, lb)
+    return X, Y
+end
 
 function sort_sane(raw_x, raw_w, raw_w2)
     p = sortperm(raw_x)
@@ -63,7 +88,7 @@ function build_blocks(t, edges, weights, weights2)
     widths = diff(edges)
     heights = counts ./ (total .* widths)
     error_heights = error_counts ./ (total .* widths)
-    return (; edges, counts, centers, widths, heights, error_counts, error_heights)
+    return BHist(edges, counts, centers, widths, heights, error_counts, error_heights)
 end
 
 """
@@ -81,7 +106,7 @@ end
 - `sumw2`: sum of weight^2 in each observation, this is particularly useful
 when this algorihtm is used for re-binning of already made histograms where
 the `sumw2` for each bin is different from `weight^2` of each bin.
-- `prior`: choose from `NoPrior`, `Pearson`, `Geometric`, `BIC`, `AIC`, `HQIC`
+- `prior`: choose from `NoPrior`, `Pearson`, `Geometric`, `BIC`, `AIC`, `HQIC`, `Significance`, `Scargle` (identical to `Significance`)
 - resolution: handles on how fine we count along the `datas axis
 - min_counts: minimum sum of weights of a block that can be splitted.
 
@@ -173,5 +198,5 @@ function bayesian_blocks(
     return build_blocks(t, edges, weights, sumw2)
 end
 
-export bayesian_blocks, Pearson, Geometric, Scargle, NoPrior, BIC, AIC, HQIC
+export BHist, bayesian_blocks, to_pdf, Pearson, Geometric, Significance, Scargle, NoPrior, BIC, AIC, HQIC
 end
