@@ -10,7 +10,6 @@
     ) where {T<:Real,W<:Real}
 """
 module BayesHistogram
-include("priors.jl")
 
 struct BHist{T<:Real}
     edges::Vector{T}
@@ -22,21 +21,8 @@ struct BHist{T<:Real}
     error_heights::Vector{T}
 end
 
-function to_pdf(h::BHist{T}; lb = minimum(h.heights)/3) where T
-    X = T[]
-    Y = T[]
-    push!(X, h.edges[begin])
-    push!(Y, lb)
-    for i in eachindex(h.heights)
-        push!(X, h.edges[i])
-        push!(X, h.edges[i+1])
-        push!(Y, h.heights[i])
-        push!(Y, h.heights[i])
-    end
-    push!(X, h.edges[end])
-    push!(Y, lb)
-    return X, Y
-end
+include("priors.jl")
+include("utils.jl")
 
 function sort_sane(raw_x, raw_w, raw_w2)
     p = sortperm(raw_x)
@@ -198,5 +184,5 @@ function bayesian_blocks(
     return build_blocks(t, edges, weights, sumw2)
 end
 
-export BHist, bayesian_blocks, to_pdf, Pearson, Geometric, Significance, Scargle, NoPrior, BIC, AIC, HQIC
+export BHist, bayesian_blocks
 end
