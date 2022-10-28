@@ -61,3 +61,4 @@ function (w::BIC)(max_blocks, cnt_total, cnt_single)
     -log(cnt_total)
 end
 
+export Pearson, Geometric, Significance, Scargle, NoPrior, BIC, AIC, HQIC

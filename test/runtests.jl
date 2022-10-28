@@ -1,6 +1,9 @@
 using BayesHistogram, Test, Random, StableRNGs
 const x = randn(StableRNG(1337), 5000)
 const default_prior = Pearson(0.05)
+naive_mean(f, x) = sum(f,x)/length(x)
+naive_mean(x) = naive_mean(identity,x)
+
 @testset "basic test BayesHistogram 1" begin
     ref = [
         -3.1578070050937224,
@@ -233,3 +236,13 @@ end
     @test res[2] == [0.0004845276479270787, 0.008143511518846264, 0.008143511518846264, 0.03399267341235206, 0.03399267341235206, 0.10970419867994981, 0.10970419867994981, 0.18666697402180743, 0.18666697402180743, 0.3594316562395907, 0.3594316562395907, 0.23909296832971377, 0.23909296832971377, 0.14316908721645752, 0.14316908721645752, 0.06511519901656145, 0.06511519901656145, 0.032141667181797555, 0.032141667181797555, 0.009465652101989552, 0.009465652101989552, 0.001453582943781236, 0.001453582943781236, 0.0004845276479270787]
 end
 
+@testset "estimate" begin
+    bl = bayesian_blocks(x, prior = AIC())
+    for fn in [one, identity, abs, abs2, cos, tanh]
+        mu_b, sd_b = estimate(fn, bl)
+        mu = naive_mean(fn,x)
+        sd = sqrt(naive_mean(v->abs2(fn(v)-mu),x)/length(x))
+        @test mu ≈ mu_b atol = max(sd,sd_b)
+        @test sd ≈ sd_b atol = 0.02
+    end
+end
