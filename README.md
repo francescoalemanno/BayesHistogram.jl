@@ -38,7 +38,7 @@ How can you influence these factors?
    - `BIC` (default): Bayesian information criterion, requires no parameters and is asymptotically consistent.
    - `AIC`: Akaike information criterion: minimizes prediction error, requires no parameters (in some cases adds too many bins, but the problem can be solved using (2) and (3)).
    - `HQIC`: Hannan-Quinn criterion, has intermediate behaviour between BIC and AIC, is close to consistency, tries to minimise prediction error.
-   - Significance (p): Scargle Criterion, a data bin is added if it has a statistical significance greater than `p`.
+   - `Significance(p)`: Scargle Criterion, a data bin is added if it has a false positive rate lower than `p`.
    - `Geometric(gamma)`: varying the parameter `gamma` changes the average number of bins to be observed.
    - `Pearson(p)`: this is useful when you want bins containing about `N*p` observations, where `N` is the total number of events.
    - `NoPrior`: for non-Bayesians, always requires the tuning of (3) and (4).
