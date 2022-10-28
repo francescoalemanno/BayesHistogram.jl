@@ -28,14 +28,15 @@ function (w::Pearson)(max_blocks, cnt_total, cnt_single)
 end
 
 
-struct Scargle{T<:Real}
+struct Significance{T<:Real}
     p0::T
-    Scargle(x::T) where {T} =
+    Significance(x::T) where {T} =
         0 < x < 1 ? new{T}(x) :
         error("false positive rate parameter must be between 0 and 1.")
 end
+const Scargle = Significance
 
-function (w::Scargle)(max_blocks, cnt_total, cnt_single)
+function (w::Significance)(max_blocks, cnt_total, cnt_single)
     #                              unused      unused
     C0 = 73.53
     C1 = -0.478
