@@ -15,14 +15,14 @@ function to_pdf(h::BHist{T}; lb = minimum(h.heights)/3) where T
     return X, Y
 end
 
-function estimate(f::Function, h::BHist{T}) where T
+function estimate(f::Function, h::BHist{T}, refine::Int = 1) where T
     function element(i::Int)
         x = h.centers[i]
         ht = h.heights[i]
         wd = h.widths[i]
         A = ht * wd
         eA = h.error_heights[i] * wd
-        fv = f(x)
+        fv = refine<=1 ? f(x) : sum(f(v) for v in LinRange(x-wd/2,x+wd/2,refine+2)[begin+1:end-1])/refine
         ii = fv*A
         eii = abs2(fv*eA)
         (ii, eii)::Tuple{T,T}
