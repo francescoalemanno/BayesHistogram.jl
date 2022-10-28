@@ -6,10 +6,10 @@ Paper: _Studies in Astronomical Time Series Analysis. VI. Bayesian Block Represe
 - [BayesHistogram.jl](#bayeshistogramjl)
   - [Introduction](#introduction)
   - [Installation](#installation)
-  - [Simple usage](#simple-usage)
+  - [Usage examples](#usage-examples)
   - [Showcase](#showcase)
-    - [it handles weighted data and errors correctly](#it-handles-weighted-data-and-errors-correctly)
     - [bins are determined automatically & optimally](#bins-are-determined-automatically--optimally)
+    - [it handles weighted data and errors correctly](#it-handles-weighted-data-and-errors-correctly)
     - [it routinely outperforms common binning rules](#it-routinely-outperforms-common-binning-rules)
 
 ## Introduction
@@ -17,11 +17,11 @@ Have you ever hated the default histogram binning rules in your favourite analys
 
 You can try to solve your problem by relying on `BayesHistogram.jl`! :)
 
-This package constructs the bin sequence that maximises the probability of observing your data, assuming it can be described by a histogram.
+This package provides the function `bayesian_blocks`, which determines the bin sequence that maximises the probability of observing your data, assuming it can be described by a histogram.
 
 In other words, the package implements a complicated algorithm that returns the optimal histogram, respecting some simple constraints that can be customised.
 
-If you can't take it any more, go directly to the usage example or, for more details, to the file `make_plot.jl` or if you want to know all the internal details `test/run_tests.jl`.
+If you can't take it any more, go directly to the usage examples or, for more details, to the file `make_plot.jl` or if you want to know all the internal details `test/run_tests.jl`.
 
 The optimal histogram is determined by four ingredients:
 1) The likelihood of a given bin.
@@ -38,7 +38,7 @@ How can you influence these factors?
    - `BIC` (default): Bayesian information criterion, requires no parameters and is asymptotically consistent.
    - `AIC`: Akaike information criterion: minimizes prediction error, requires no parameters (in some cases adds too many bins, but the problem can be solved using (2) and (3)).
    - `HQIC`: Hannan-Quinn criterion, has intermediate behaviour between BIC and AIC, is close to consistency, tries to minimise prediction error.
-   - `Significance(p)`: Scargle Criterion, a data bin is added if it has a false positive rate lower than `p`.
+   - `FPR(p)`: Scargle Criterion, a data bin is added if it has a false positive rate lower than `p`.
    - `Geometric(gamma)`: varying the parameter `gamma` changes the average number of bins to be observed.
    - `Pearson(p)`: this is useful when you want bins containing about `N*p` observations, where `N` is the total number of events.
    - `NoPrior`: for non-Bayesians, always requires the tuning of (3) and (4).
@@ -56,7 +56,10 @@ using Pkg
 Pkg.add("BayesHistogram")
 ```
 
-## Simple usage
+## Usage examples
+for looking at every option available type in the repl `?bayesian_blocks`.
+
+Examples:
 ```julia
 using Plots, BayesHistogram
 X = exp.(randn(5000)./3)
@@ -67,12 +70,33 @@ plot(support, density)
 # or using "edges" parameter and an histogramming procedure
 histogram(X, bins=bl.edges, normalize = :pdf)
 ```
+we can change the prior as follows:
+```julia
+bl = bayesian_blocks(X, prior=AIC(), resolution=40)
+plot(to_pdf(bl)...)
+bl = bayesian_blocks(X, prior=FPR(0.2), resolution=40)
+plot!(to_pdf(bl)...)
+```
+we can also plot the errors:
+```julia
+plot(to_pdf(bl)..., color="black")
+scatter!(bl.centers, bl.heights, yerr = bl.error_heights, color="black")
+```
+we can also estimate averages and their errors:
+```julia
+estimate(bl) do v; v end 
+# result: (1.0610279949641472, 0.014646660658986687)
 
+# the result can be refined by increasing the number of integration points
+
+estimate(bl,100) do v; v^2 end 
+# result: (1.2574274634942957, 0.021142852215391358)
+```
 ## Showcase
-### it handles weighted data and errors correctly
-![plot2.png](plot2.png "")
 ### bins are determined automatically & optimally 
 ![plot3.png](plot3.png "")
+### it handles weighted data and errors correctly
+![plot2.png](plot2.png "")
 ### it routinely outperforms common binning rules
 ![plot.png](plot.png "")
 

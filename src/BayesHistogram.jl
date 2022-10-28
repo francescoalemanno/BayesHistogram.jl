@@ -92,7 +92,7 @@ end
 - `sumw2`: sum of weight^2 in each observation, this is particularly useful
 when this algorihtm is used for re-binning of already made histograms where
 the `sumw2` for each bin is different from `weight^2` of each bin.
-- `prior`: choose from `NoPrior`, `Pearson`, `Geometric`, `BIC`, `AIC`, `HQIC`, `Significance`, `Scargle` (identical to `Significance`)
+- `prior`: choose from `NoPrior`, `Pearson`, `Geometric`, `BIC`, `AIC`, `HQIC`, `FPR`, `Scargle` (identical to `FPR`)
 - resolution: handles on how fine we count along the `datas axis
 - min_counts: minimum sum of weights of a block that can be splitted.
 

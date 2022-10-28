@@ -28,15 +28,15 @@ function (w::Pearson)(max_blocks, cnt_total, cnt_single)
 end
 
 
-struct Significance{T<:Real}
+struct FPR{T<:Real}
     p0::T
-    Significance(x::T) where {T} =
+    FPR(x::T) where {T} =
         0 < x < 1 ? new{T}(x) :
         error("false positive rate parameter must be between 0 and 1.")
 end
-const Scargle = Significance
+const Scargle = FPR
 
-function (w::Significance)(max_blocks, cnt_total, cnt_single)
+function (w::FPR)(max_blocks, cnt_total, cnt_single)
     #                              unused      unused
     C0 = 73.53
     C1 = -0.478
@@ -61,4 +61,4 @@ function (w::BIC)(max_blocks, cnt_total, cnt_single)
     -log(cnt_total)
 end
 
-export Pearson, Geometric, Significance, Scargle, NoPrior, BIC, AIC, HQIC
+export Pearson, Geometric, FPR, Scargle, NoPrior, BIC, AIC, HQIC
