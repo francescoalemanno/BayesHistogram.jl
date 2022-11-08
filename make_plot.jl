@@ -38,14 +38,13 @@ let plot_mode = true
     x = fake_data()
     stephist(x, normalize = :pdf, lw=1.7, label = "classical", legend=:topright)
 
+    b1 = bayesian_blocks(x, prior=HQIC())
     if plot_mode
         # this uses BayesHistogram.jl "to_pdf"
-        b1 = bayesian_blocks(x, prior=BIC())
         xvals, epdf = to_pdf(b1)
         plot!(xvals, epdf, lw=2, label = "bayes-hist")
     else
         # this uses Plots.jl "stephist"
-        b1 = bayesian_blocks(x)
         stephist!(x, bin = b1.edges, normalize = :pdf,lw=2, label = "bayes-hist")    
     end
     lx = 0:0.001:8
@@ -60,7 +59,7 @@ end
 let
     gr()
     x = fake_data()
-    b = bayesian_blocks(x)
+    b = bayesian_blocks(x, prior=HQIC())
     P = []
 
     Hs = [
@@ -101,7 +100,7 @@ let
     rng = Xoshiro(1231)
     x = collect(-4:0.01:4)
     w = round.(Int,exp.(.-x.^2).*30 .+ rand(rng, length(x))) .+ 0.5
-    b = bayesian_blocks(x, weights = w, prior=BIC())
+    b = bayesian_blocks(x, weights = w)
     scatter(x, shuffle(rng,LinRange(0,0.5, length(x))), ms=sqrt.(w),alpha=0.5, label="noisy weighted data",markercolor="red",markerstrokewidth=0)
     dx, dy = to_pdf(b)
 
