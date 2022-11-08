@@ -1,7 +1,7 @@
 name = "BayesHistogram"
 uuid = "000d9b38-65fe-4c81-bdb9-69f01f102479"
 authors = ["Francesco Alemanno <francescoalemanno710[at]gmail.com>", "Moelf <proton[at]jling.dev>"]
-version = "1.0.6"
+version = "1.0.7"
 
 [compat]
 julia = "^1.6"
