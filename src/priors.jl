@@ -46,13 +46,13 @@ end
 struct AIC end
 
 function (w::AIC)(max_blocks, cnt_total, cnt_single)
-    -1
+    -2
 end
 
 struct HQIC end
 
 function (w::HQIC)(max_blocks, cnt_total, cnt_single)
-    -log(log(cnt_total))
+    -2*log(log(cnt_total))
 end
 
 struct BIC end
